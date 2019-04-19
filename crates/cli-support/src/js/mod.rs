@@ -921,7 +921,16 @@ impl<'a> Context<'a> {
                     const imports = {{ './{module}': __exports }};
                     if (module instanceof URL || typeof module === 'string' || module instanceof Request) {{
                         {init_memory2}
-                        const response = fetch(module);
+
+                        const fetchWebAssembly = async (url) => {
+                            const response = await fetch(url);
+                            if (response.headers.get('content-type') === 'application/wasm') return response;
+                            let headers = new Headers(response.headers)
+                            headers.set('content-type', 'application/wasm')
+                            return new Response(response.body, { headers })
+                        };
+
+                        const response = fetchWebAssembly(module);
                         if (typeof WebAssembly.instantiateStreaming === 'function') {{
                             result = WebAssembly.instantiateStreaming(response, imports)
                                 .catch(e => {{
